@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NovelHub — Free Books</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <header class="header">
+    <div class="logo">Novel<span>Hub</span></div>
+
+    <button id="themeBtn" class="theme-btn">☾</button>
+  </header>
+
+  <main>
+
+    <!-- HERO -->
+    <section class="hero">
+
+      <div class="hero-content">
+
+        <p class="eyebrow">READ FOR FREE</p>
+
+        <h1>Discover your next<br>great story.</h1>
+
+        <p class="hero-text">
+          Search thousands of books and discover classics
+          you can read online for free.
+        </p>
+
+        <div class="search-box">
+
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search books, authors..."
+          >
+
+          <button id="searchBtn">
+            Search
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- RESULTS -->
+
+    <section class="library">
+
+      <div class="section-header">
+        <h2>Discover Books</h2>
+        <span id="resultCount"></span>
+      </div>
+
+      <div id="books" class="books">
+
+        <div class="loading">
+          Search for a book to get started.
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- READER -->
+
+  <div id="reader" class="reader hidden">
+
+    <div class="reader-header">
+
+      <button id="closeReader">
+        ← Back
+      </button>
+
+      <span id="readerTitle">
+        Reading
+      </span>
+
+      <div class="reader-controls">
+
+        <button id="decreaseFont">
+          A−
+        </button>
+
+        <button id="increaseFont">
+          A+
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <article id="readerContent" class="reader-content">
+
+      <div class="reader-loading">
+        Loading book...
+      </div>
+
+    </article>
+
+  </div>
+
+
+  <script src="app.js"></script>
+
+</body>
+</html>
