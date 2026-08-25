@@ -7,30 +7,59 @@
   <title>NovelHub — Free Books</title>
 
   <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-  <header class="header">
-    <div class="logo">Novel<span>Hub</span></div>
+  <!-- HEADER -->
 
-    <button id="themeBtn" class="theme-btn">☾</button>
+  <header class="header">
+
+    <div class="logo">
+      Novel<span>Hub</span>
+    </div>
+
+    <nav class="nav">
+
+      <button id="libraryBtn" class="nav-btn">
+        My Library
+      </button>
+
+      <button id="authBtn" class="nav-btn">
+        Sign in
+      </button>
+
+      <button id="themeBtn" class="theme-btn">
+        ☾
+      </button>
+
+    </nav>
+
   </header>
+
 
   <main>
 
     <!-- HERO -->
+
     <section class="hero">
 
       <div class="hero-content">
 
-        <p class="eyebrow">READ FOR FREE</p>
+        <p class="eyebrow">
+          READ FOR FREE
+        </p>
 
-        <h1>Discover your next<br>great story.</h1>
+        <h1>
+          Discover your next<br>
+          great story.
+        </h1>
 
         <p class="hero-text">
-          Search thousands of books and discover classics
-          you can read online for free.
+          Search thousands of public-domain books
+          and read them instantly online.
         </p>
 
         <div class="search-box">
@@ -39,6 +68,7 @@
             type="text"
             id="searchInput"
             placeholder="Search books, authors..."
+            autocomplete="off"
           >
 
           <button id="searchBtn">
@@ -52,14 +82,20 @@
     </section>
 
 
-    <!-- RESULTS -->
+    <!-- LIBRARY -->
 
     <section class="library">
 
       <div class="section-header">
-        <h2>Discover Books</h2>
+
+        <h2 id="sectionTitle">
+          Discover Books
+        </h2>
+
         <span id="resultCount"></span>
+
       </div>
+
 
       <div id="books" class="books">
 
@@ -72,6 +108,60 @@
     </section>
 
   </main>
+
+
+  <!-- AUTH MODAL -->
+
+  <div id="authModal" class="modal hidden">
+
+    <div class="modal-card">
+
+      <button id="closeAuth" class="modal-close">
+        ×
+      </button>
+
+      <h2 id="authTitle">
+        Sign in
+      </h2>
+
+      <p id="authSubtitle">
+        Sign in to save books and reading progress.
+      </p>
+
+      <form id="authForm">
+
+        <input
+          id="emailInput"
+          type="email"
+          placeholder="Email"
+          required
+        >
+
+        <input
+          id="passwordInput"
+          type="password"
+          placeholder="Password"
+          minlength="6"
+          required
+        >
+
+        <button type="submit" class="primary-btn">
+          <span id="authSubmitText">
+            Sign in
+          </span>
+        </button>
+
+      </form>
+
+      <p id="authMessage" class="auth-message"></p>
+
+      <button id="toggleAuth" class="switch-auth">
+        Don't have an account? Sign up
+      </button>
+
+    </div>
+
+  </div>
 
 
   <!-- READER -->
@@ -90,6 +180,10 @@
 
       <div class="reader-controls">
 
+        <button id="bookmarkBtn" title="Bookmark">
+          🔖
+        </button>
+
         <button id="decreaseFont">
           A−
         </button>
@@ -101,6 +195,26 @@
       </div>
 
     </div>
+
+
+    <article
+      id="readerContent"
+      class="reader-content"
+    >
+
+      <div class="reader-loading">
+        Loading book...
+      </div>
+
+    </article>
+
+  </div>
+
+
+  <script src="app.js"></script>
+
+</body>
+</html>    </div>
 
 
     <article id="readerContent" class="reader-content">
