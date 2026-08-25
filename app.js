@@ -1,11 +1,6 @@
 /* =========================================================
-   NOVELHUB
-   Supabase + Gutendex + Project Gutenberg
-========================================================= */
-
-
-/* =========================================================
-   SUPABASE
+   NOVELHUB — CORE VERSION
+   Gutendex + Project Gutenberg + Supabase
 ========================================================= */
 
 const SUPABASE_URL =
@@ -14,373 +9,54 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_bG7mVEOkRFKj0XH3wRWZqg_D61fsRoa";
 
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
 
 /* =========================================================
-   DOM
+   ELEMENTS
 ========================================================= */
 
-const searchInput =
-  document.getElementById("searchInput");
+const searchInput = document.getElementById("searchInput");
+const searchBtn = document.getElementById("searchBtn");
+const booksContainer = document.getElementById("books");
+const resultCount = document.getElementById("resultCount");
 
-const searchBtn =
-  document.getElementById("searchBtn");
+const reader = document.getElementById("reader");
+const readerTitle = document.getElementById("readerTitle");
+const readerContent = document.getElementById("readerContent");
 
-const booksContainer =
-  document.getElementById("books");
+const closeReader = document.getElementById("closeReader");
 
-const resultCount =
-  document.getElementById("resultCount");
+const increaseFont = document.getElementById("increaseFont");
+const decreaseFont = document.getElementById("decreaseFont");
 
-const sectionTitle =
-  document.getElementById("sectionTitle");
-
-const reader =
-  document.getElementById("reader");
-
-const readerTitle =
-  document.getElementById("readerTitle");
-
-const readerContent =
-  document.getElementById("readerContent");
-
-const closeReader =
-  document.getElementById("closeReader");
-
-const increaseFont =
-  document.getElementById("increaseFont");
-
-const decreaseFont =
-  document.getElementById("decreaseFont");
-
-const bookmarkBtn =
-  document.getElementById("bookmarkBtn");
-
-const themeBtn =
-  document.getElementById("themeBtn");
-
-const authBtn =
-  document.getElementById("authBtn");
-
-const libraryBtn =
-  document.getElementById("libraryBtn");
-
-const authModal =
-  document.getElementById("authModal");
-
-const closeAuth =
-  document.getElementById("closeAuth");
-
-const authForm =
-  document.getElementById("authForm");
-
-const authTitle =
-  document.getElementById("authTitle");
-
-const authSubtitle =
-  document.getElementById("authSubtitle");
-
-const authSubmitText =
-  document.getElementById("authSubmitText");
-
-const toggleAuth =
-  document.getElementById("toggleAuth");
-
-const authMessage =
-  document.getElementById("authMessage");
-
-const emailInput =
-  document.getElementById("emailInput");
-
-const passwordInput =
-  document.getElementById("passwordInput");
+const themeBtn = document.getElementById("themeBtn");
 
 
 /* =========================================================
    STATE
 ========================================================= */
 
-let currentUser = null;
+let fontSize =
+  Number(localStorage.getItem("novelhub-font-size")) || 19;
 
 let currentBook = null;
 
-let currentBookId = null;
-
-let currentGutenbergId = null;
-
-let fontSize = 19;
-
-let isSignUp = false;
-
-let saveProgressTimer = null;
-
 
 /* =========================================================
-   AUTH
-========================================================= */
-
-async function loadUser() {
-
-  const {
-    data,
-    error
-  } = await supabaseClient.auth.getUser();
-
-  if (error) {
-
-    console.error(error);
-
-    return;
-
-  }
-
-  currentUser =
-    data.user || null;
-
-  updateAuthUI();
-
-}
-
-
-function updateAuthUI() {
-
-  if (currentUser) {
-
-    authBtn.textContent =
-      "Sign out";
-
-  } else {
-
-    authBtn.textContent =
-      "Sign in";
-
-  }
-
-}
-
-
-/* =========================================================
-   AUTH BUTTON
-========================================================= */
-
-authBtn.addEventListener(
-  "click",
-  async () => {
-
-    if (currentUser) {
-
-      await supabaseClient.auth.signOut();
-
-      currentUser = null;
-
-      updateAuthUI();
-
-      alert("Signed out.");
-
-      return;
-
-    }
-
-    openAuthModal();
-
-  }
-);
-
-
-/* =========================================================
-   OPEN AUTH
-========================================================= */
-
-function openAuthModal() {
-
-  authModal.classList.remove("hidden");
-
-  authMessage.textContent = "";
-
-  emailInput.value = "";
-
-  passwordInput.value = "";
-
-}
-
-
-/* =========================================================
-   CLOSE AUTH
-========================================================= */
-
-closeAuth.addEventListener(
-  "click",
-  () => {
-
-    authModal.classList.add("hidden");
-
-  }
-);
-
-
-/* =========================================================
-   TOGGLE SIGN IN / SIGN UP
-========================================================= */
-
-toggleAuth.addEventListener(
-  "click",
-  () => {
-
-    isSignUp =
-      !isSignUp;
-
-    if (isSignUp) {
-
-      authTitle.textContent =
-        "Create account";
-
-      authSubtitle.textContent =
-        "Create an account to save your library and reading progress.";
-
-      authSubmitText.textContent =
-        "Create account";
-
-      toggleAuth.textContent =
-        "Already have an account? Sign in";
-
-    } else {
-
-      authTitle.textContent =
-        "Sign in";
-
-      authSubtitle.textContent =
-        "Sign in to save books and reading progress.";
-
-      authSubmitText.textContent =
-        "Sign in";
-
-      toggleAuth.textContent =
-        "Don't have an account? Sign up";
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   AUTH FORM
-========================================================= */
-
-authForm.addEventListener(
-  "submit",
-  async event => {
-
-    event.preventDefault();
-
-    const email =
-      emailInput.value.trim();
-
-    const password =
-      passwordInput.value;
-
-
-    authMessage.textContent =
-      "Please wait...";
-
-
-    try {
-
-      let result;
-
-
-      if (isSignUp) {
-
-        result =
-          await supabaseClient.auth.signUp({
-            email,
-            password
-          });
-
-      } else {
-
-        result =
-          await supabaseClient.auth.signInWithPassword({
-            email,
-            password
-          });
-
-      }
-
-
-      if (result.error) {
-
-        throw result.error;
-
-      }
-
-
-      if (isSignUp) {
-
-        authMessage.textContent =
-          "Account created. Check your email if confirmation is required.";
-
-      } else {
-
-        currentUser =
-          result.data.user;
-
-        updateAuthUI();
-
-        authModal.classList.add("hidden");
-
-      }
-
-    } catch (error) {
-
-      console.error(error);
-
-      authMessage.textContent =
-        error.message;
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   AUTH STATE LISTENER
-========================================================= */
-
-supabaseClient.auth.onAuthStateChange(
-  (_event, session) => {
-
-    currentUser =
-      session?.user || null;
-
-    updateAuthUI();
-
-  }
-);
-
-
-/* =========================================================
-   SEARCH GUTENDEX
+   SEARCH
 ========================================================= */
 
 async function searchBooks(query) {
 
-  if (!query.trim()) {
+  query = query.trim();
 
+  if (!query) {
     return;
-
   }
-
-
-  sectionTitle.textContent =
-    "Search Results";
-
 
   booksContainer.innerHTML = `
     <div class="loading">
@@ -388,46 +64,36 @@ async function searchBooks(query) {
     </div>
   `;
 
+  resultCount.textContent = "";
 
   try {
 
     const url =
-      `https://gutendex.com/books/?search=${encodeURIComponent(query)}&page_size=32`;
-
+      `https://gutendex.com/books/?search=${encodeURIComponent(query)}&page_size=24`;
 
     const response =
       await fetch(url);
 
-
     if (!response.ok) {
-
-      throw new Error(
-        "Search failed."
-      );
-
+      throw new Error("Gutendex request failed");
     }
-
 
     const data =
       await response.json();
 
-
     resultCount.textContent =
       `${data.count.toLocaleString()} books found`;
 
-
-    displayBooks(
-      data.results
-    );
-
+    displayBooks(data.results);
 
   } catch (error) {
 
-    console.error(error);
+    console.error("SEARCH ERROR:", error);
 
     booksContainer.innerHTML = `
       <div class="loading">
-        Something went wrong. Try again.
+        Unable to search books right now.
+        Please try again.
       </div>
     `;
 
@@ -440,12 +106,11 @@ async function searchBooks(query) {
    DISPLAY BOOKS
 ========================================================= */
 
-async function displayBooks(books) {
+function displayBooks(books) {
 
   booksContainer.innerHTML = "";
 
-
-  if (!books.length) {
+  if (!books || books.length === 0) {
 
     booksContainer.innerHTML = `
       <div class="loading">
@@ -454,151 +119,174 @@ async function displayBooks(books) {
     `;
 
     return;
-
   }
 
 
-  for (const book of books) {
+  books.forEach(book => {
 
     const card =
-      createBookCard(book);
+      document.createElement("div");
+
+    card.className = "book";
+
+
+    const cover =
+      book.formats?.["image/jpeg"] ||
+      "https://via.placeholder.com/300x450?text=No+Cover";
+
+
+    const title =
+      book.title || "Unknown title";
+
+
+    const author =
+      book.authors?.[0]?.name ||
+      "Unknown author";
+
+
+    card.innerHTML = `
+
+      <img
+        class="book-cover"
+        src="${escapeHTML(cover)}"
+        alt="${escapeHTML(title)}"
+      >
+
+      <div class="book-info">
+
+        <div class="book-title">
+          ${escapeHTML(title)}
+        </div>
+
+        <div class="book-author">
+          ${escapeHTML(author)}
+        </div>
+
+      </div>
+
+    `;
+
+
+    card.addEventListener(
+      "click",
+      () => openBook(book)
+    );
+
 
     booksContainer.appendChild(card);
 
-  }
-
-
-  if (currentUser) {
-
-    await markFavoriteBooks();
-
-  }
+  });
 
 }
 
 
 /* =========================================================
-   CREATE BOOK CARD
+   OPEN BOOK
 ========================================================= */
 
-function createBookCard(book) {
+async function openBook(book) {
 
-  const card =
-    document.createElement("div");
+  currentBook = book;
 
-  card.className =
-    "book";
+  reader.classList.remove("hidden");
 
+  document.body.style.overflow = "hidden";
 
-  const cover =
-    book.formats?.["image/jpeg"] ||
-    "https://via.placeholder.com/300x450?text=No+Cover";
+  readerTitle.textContent =
+    book.title || "Reading";
 
 
-  const title =
-    book.title ||
-    "Unknown title";
+  readerContent.innerHTML = `
+    <div class="reader-loading">
+      Loading book...
+    </div>
+  `;
 
 
-  const author =
-    book.authors?.[0]?.name ||
-    "Unknown author";
+  try {
+
+    const textUrl =
+      getTextUrl(book);
 
 
-  const img =
-    document.createElement("img");
+    if (!textUrl) {
 
-  img.className =
-    "book-cover";
-
-  img.src =
-    cover;
-
-  img.alt =
-    title;
-
-
-  const info =
-    document.createElement("div");
-
-  info.className =
-    "book-info";
-
-
-  const titleElement =
-    document.createElement("div");
-
-  titleElement.className =
-    "book-title";
-
-  titleElement.textContent =
-    title;
-
-
-  const authorElement =
-    document.createElement("div");
-
-  authorElement.className =
-    "book-author";
-
-  authorElement.textContent =
-    author;
-
-
-  info.appendChild(titleElement);
-
-  info.appendChild(authorElement);
-
-
-  const favorite =
-    document.createElement("button");
-
-  favorite.className =
-    "favorite-btn";
-
-  favorite.textContent =
-    "♡";
-
-  favorite.title =
-    "Favorite";
-
-
-  favorite.addEventListener(
-    "click",
-    async event => {
-
-      event.stopPropagation();
-
-      await toggleFavorite(book);
+      throw new Error(
+        "No readable text version available."
+      );
 
     }
-  );
 
 
-  card.appendChild(img);
-
-  card.appendChild(info);
-
-  card.appendChild(favorite);
+    const response =
+      await fetch(textUrl);
 
 
-  card.addEventListener(
-    "click",
-    () => {
+    if (!response.ok) {
 
-      openBook(book);
+      throw new Error(
+        "Unable to download book."
+      );
 
     }
-  );
 
 
-  return card;
+    const text =
+      await response.text();
+
+
+    displayBookText(
+      text,
+      book.title
+    );
+
+
+    /*
+    Save book to Supabase.
+    Failure here will NOT stop reading.
+    */
+
+    saveBook(book);
+
+  } catch (error) {
+
+    console.error(
+      "BOOK ERROR:",
+      error
+    );
+
+
+    readerContent.innerHTML = `
+
+      <h1>
+        ${escapeHTML(book.title)}
+      </h1>
+
+      <p>
+        This book could not be loaded directly.
+      </p>
+
+      <p>
+        You can open it on Project Gutenberg.
+      </p>
+
+      <a
+        href="https://www.gutenberg.org/ebooks/${book.id}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open Project Gutenberg
+      </a>
+
+    `;
+
+  }
 
 }
 
 
 /* =========================================================
-   GET TEXT FORMAT
+   FIND TEXT FILE
 ========================================================= */
 
 function getTextUrl(book) {
@@ -618,210 +306,7 @@ function getTextUrl(book) {
 
 
 /* =========================================================
-   OPEN BOOK
-========================================================= */
-
-async function openBook(book) {
-
-  const textUrl =
-    getTextUrl(book);
-
-
-  if (!textUrl) {
-
-    alert(
-      "A readable text version of this book is not available."
-    );
-
-    return;
-
-  }
-
-
-  currentGutenbergId =
-    book.id;
-
-
-  reader.classList.remove(
-    "hidden"
-  );
-
-
-  document.body.style.overflow =
-    "hidden";
-
-
-  readerTitle.textContent =
-    book.title;
-
-
-  readerContent.innerHTML = `
-    <div class="reader-loading">
-      Loading "${escapeHTML(book.title)}"...
-    </div>
-  `;
-
-
-  currentBook =
-    book;
-
-
-  try {
-
-    const response =
-      await fetch(textUrl);
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        "Book could not be loaded."
-      );
-
-    }
-
-
-    const text =
-      await response.text();
-
-
-    const savedBook =
-      await saveBookToSupabase(book);
-
-
-    if (savedBook) {
-
-      currentBookId =
-        savedBook.id;
-
-    }
-
-
-    displayBookText(
-      text,
-      book.title
-    );
-
-
-    await loadReadingProgress();
-
-
-  } catch (error) {
-
-    console.error(error);
-
-    readerContent.innerHTML = `
-
-      <h1>${escapeHTML(book.title)}</h1>
-
-      <p>
-        We couldn't load this book right now.
-      </p>
-
-      <a
-        href="https://www.gutenberg.org/ebooks/${book.id}"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Open on Project Gutenberg
-      </a>
-
-    `;
-
-  }
-
-}
-
-
-/* =========================================================
-   SAVE BOOK
-========================================================= */
-
-async function saveBookToSupabase(book) {
-
-  const existing =
-    await supabaseClient
-      .from("books")
-      .select("*")
-      .eq("gutenberg_id", book.id)
-      .maybeSingle();
-
-
-  if (existing.error) {
-
-    console.error(
-      existing.error
-    );
-
-    return null;
-
-  }
-
-
-  if (existing.data) {
-
-    return existing.data;
-
-  }
-
-
-  const author =
-    book.authors?.[0]?.name ||
-    null;
-
-
-  const cover =
-    book.formats?.["image/jpeg"] ||
-    null;
-
-
-  const description =
-    Array.isArray(book.subjects)
-      ? book.subjects.join(", ")
-      : null;
-
-
-  const result =
-    await supabaseClient
-      .from("books")
-      .insert({
-
-        gutenberg_id:
-          book.id,
-
-        title:
-          book.title,
-
-        author,
-
-        cover_url:
-          cover,
-
-        description
-
-      })
-      .select()
-      .single();
-
-
-  if (result.error) {
-
-    console.error(
-      result.error
-    );
-
-    return null;
-
-  }
-
-
-  return result.data;
-
-}
-
-
-/* =========================================================
-   FORMAT BOOK TEXT
+   FORMAT BOOK
 ========================================================= */
 
 function displayBookText(
@@ -833,23 +318,13 @@ function displayBookText(
     text;
 
 
-  const startMarker =
-    "*** START OF";
-
-
-  const endMarker =
-    "*** END OF";
-
+  /*
+  Remove Gutenberg header.
+  */
 
   const start =
     cleanText.indexOf(
-      startMarker
-    );
-
-
-  const end =
-    cleanText.indexOf(
-      endMarker
+      "*** START OF"
     );
 
 
@@ -873,6 +348,16 @@ function displayBookText(
   }
 
 
+  /*
+  Remove Gutenberg footer.
+  */
+
+  const end =
+    cleanText.indexOf(
+      "*** END OF"
+    );
+
+
   if (end !== -1) {
 
     cleanText =
@@ -882,6 +367,16 @@ function displayBookText(
       );
 
   }
+
+
+  const paragraphs =
+    cleanText
+      .split(/\n\s*\n/)
+      .map(
+        paragraph =>
+          paragraph.trim()
+      )
+      .filter(Boolean);
 
 
   readerContent.innerHTML = "";
@@ -899,13 +394,6 @@ function displayBookText(
   );
 
 
-  const paragraphs =
-    cleanText
-      .split(/\n\s*\n/)
-      .map(p => p.trim())
-      .filter(Boolean);
-
-
   paragraphs.forEach(
     paragraph => {
 
@@ -915,9 +403,7 @@ function displayBookText(
       p.textContent =
         paragraph;
 
-      readerContent.appendChild(
-        p
-      );
+      readerContent.appendChild(p);
 
     }
   );
@@ -930,30 +416,124 @@ function displayBookText(
 
 
 /* =========================================================
+   SAVE BOOK TO SUPABASE
+========================================================= */
+
+async function saveBook(book) {
+
+  try {
+
+    /*
+    Check whether this Gutenberg book
+    already exists.
+    */
+
+    const existing =
+      await db
+        .from("books")
+        .select("id")
+        .eq(
+          "gutenberg_id",
+          book.id
+        )
+        .maybeSingle();
+
+
+    if (existing.error) {
+
+      console.error(
+        "SUPABASE CHECK ERROR:",
+        existing.error
+      );
+
+      return;
+
+    }
+
+
+    if (existing.data) {
+
+      return;
+
+    }
+
+
+    const author =
+      book.authors?.[0]?.name ||
+      null;
+
+
+    const cover =
+      book.formats?.["image/jpeg"] ||
+      null;
+
+
+    const result =
+      await db
+        .from("books")
+        .insert({
+
+          gutenberg_id:
+            book.id,
+
+          title:
+            book.title,
+
+          author:
+            author,
+
+          cover_url:
+            cover,
+
+          description:
+            Array.isArray(book.subjects)
+              ? book.subjects.join(", ")
+              : null
+
+        });
+
+
+    if (result.error) {
+
+      console.error(
+        "SUPABASE INSERT ERROR:",
+        result.error
+      );
+
+    } else {
+
+      console.log(
+        "Book saved to Supabase:",
+        book.title
+      );
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "SUPABASE ERROR:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
    CLOSE READER
 ========================================================= */
 
 closeReader.addEventListener(
   "click",
-  async () => {
+  () => {
 
-    await saveCurrentProgress();
+    reader.classList.add("hidden");
 
-    reader.classList.add(
-      "hidden"
-    );
+    document.body.style.overflow = "";
 
-    document.body.style.overflow =
-      "";
-
-    currentBook =
-      null;
-
-    currentBookId =
-      null;
-
-    currentGutenbergId =
-      null;
+    currentBook = null;
 
   }
 );
@@ -970,9 +550,7 @@ increaseFont.addEventListener(
     fontSize += 2;
 
     if (fontSize > 30) {
-
       fontSize = 30;
-
     }
 
     readerContent.style.fontSize =
@@ -994,9 +572,7 @@ decreaseFont.addEventListener(
     fontSize -= 2;
 
     if (fontSize < 13) {
-
       fontSize = 13;
-
     }
 
     readerContent.style.fontSize =
@@ -1012,390 +588,114 @@ decreaseFont.addEventListener(
 
 
 /* =========================================================
-   READING PROGRESS
+   SEARCH BUTTON
 ========================================================= */
 
-async function saveCurrentProgress() {
-
-  if (
-    !currentUser ||
-    !currentBookId ||
-    !readerContent
-  ) {
-
-    return;
-
-  }
-
-
-  const scrollable =
-    document.documentElement.scrollHeight -
-    window.innerHeight;
-
-
-  if (scrollable <= 0) {
-
-    return;
-
-  }
-
-
-  const progress =
-    Math.min(
-      100,
-      Math.max(
-        0,
-        (window.scrollY / scrollable) * 100
-      )
-    );
-
-
-  const result =
-    await supabaseClient
-      .from("reading_progress")
-      .upsert(
-        {
-
-          user_id:
-            currentUser.id,
-
-          book_id:
-            currentBookId,
-
-          progress:
-            Number(progress.toFixed(2)),
-
-          updated_at:
-            new Date().toISOString()
-
-        },
-        {
-          onConflict:
-            "user_id,book_id"
-        }
-      );
-
-
-  if (result.error) {
-
-    console.error(
-      "Progress error:",
-      result.error
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   AUTO SAVE SCROLL
-========================================================= */
-
-window.addEventListener(
-  "scroll",
+searchBtn.addEventListener(
+  "click",
   () => {
 
-    if (
-      reader.classList.contains(
-        "hidden"
-      )
-    ) {
-
-      return;
-
-    }
-
-
-    clearTimeout(
-      saveProgressTimer
+    searchBooks(
+      searchInput.value
     );
-
-
-    saveProgressTimer =
-      setTimeout(
-        saveCurrentProgress,
-        800
-      );
 
   }
 );
 
 
 /* =========================================================
-   LOAD READING PROGRESS
+   ENTER TO SEARCH
 ========================================================= */
 
-async function loadReadingProgress() {
+searchInput.addEventListener(
+  "keydown",
+  event => {
 
-  if (
-    !currentUser ||
-    !currentBookId
-  ) {
+    if (event.key === "Enter") {
 
-    return;
-
-  }
-
-
-  const result =
-    await supabaseClient
-      .from("reading_progress")
-      .select("progress")
-      .eq(
-        "user_id",
-        currentUser.id
-      )
-      .eq(
-        "book_id",
-        currentBookId
-      )
-      .maybeSingle();
-
-
-  if (
-    result.error ||
-    !result.data
-  ) {
-
-    return;
-
-  }
-
-
-  const progress =
-    Number(
-      result.data.progress
-    );
-
-
-  if (
-    progress <= 0 ||
-    progress >= 100
-  ) {
-
-    return;
-
-  }
-
-
-  setTimeout(
-    () => {
-
-      const scrollable =
-        document.documentElement.scrollHeight -
-        window.innerHeight;
-
-
-      window.scrollTo(
-        0,
-        scrollable * (progress / 100)
+      searchBooks(
+        searchInput.value
       );
-
-    },
-    300
-  );
-
-}
-
-
-/* =========================================================
-   FAVORITES
-========================================================= */
-
-async function toggleFavorite(book) {
-
-  if (!currentUser) {
-
-    openAuthModal();
-
-    authMessage.textContent =
-      "Sign in to save books.";
-
-    return;
-
-  }
-
-
-  const savedBook =
-    await saveBookToSupabase(book);
-
-
-  if (!savedBook) {
-
-    return;
-
-  }
-
-
-  const existing =
-    await supabaseClient
-      .from("favorites")
-      .select("id")
-      .eq(
-        "user_id",
-        currentUser.id
-      )
-      .eq(
-        "book_id",
-        savedBook.id
-      )
-      .maybeSingle();
-
-
-  if (existing.error) {
-
-    console.error(
-      existing.error
-    );
-
-    return;
-
-  }
-
-
-  if (existing.data) {
-
-    await supabaseClient
-      .from("favorites")
-      .delete()
-      .eq(
-        "id",
-        existing.data.id
-      );
-
-  } else {
-
-    await supabaseClient
-      .from("favorites")
-      .insert({
-
-        user_id:
-          currentUser.id,
-
-        book_id:
-          savedBook.id
-
-      });
-
-  }
-
-
-  /*
-  Refresh current search
-  */
-
-  if (searchInput.value.trim()) {
-
-    await searchBooks(
-      searchInput.value
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   MARK FAVORITES
-========================================================= */
-
-async function markFavoriteBooks() {
-
-  if (!currentUser) {
-
-    return;
-
-  }
-
-
-  const result =
-    await supabaseClient
-      .from("favorites")
-      .select("book_id");
-
-
-  if (result.error) {
-
-    console.error(
-      result.error
-    );
-
-    return;
-
-  }
-
-
-  /*
-  The search cards are indexed
-  in the same order as the result.
-  */
-
-  const favoriteIds =
-    new Set(
-      result.data.map(
-        item =>
-          item.book_id
-      )
-    );
-
-
-  const cards =
-    document.querySelectorAll(
-      ".book"
-    );
-
-
-  /*
-  We don't have the Supabase ID
-  stored directly on cards, so this
-  function is mainly visual support
-  for cards already saved during this
-  session.
-  */
-
-}
-
-
-/* =========================================================
-   MY LIBRARY
-========================================================= */
-
-libraryBtn.addEventListener(
-  "click",
-  async () => {
-
-    if (!currentUser) {
-
-      openAuthModal();
-
-      authMessage.textContent =
-        "Sign in to access your library.";
-
-      return;
 
     }
 
-
-    sectionTitle.textContent =
-      "My Library";
-
-    resultCount.textContent =
-      "";
+  }
+);
 
 
-    booksContainer.innerHTML = `
-      <div class="loading">
-        Loading your library...
-      </div>
-    `;
+/* =========================================================
+   THEME
+========================================================= */
+
+themeBtn.addEventListener(
+  "click",
+  () => {
+
+    document.body.classList.toggle(
+      "light"
+    );
 
 
-    const result =
-      await supabaseClient
-        .from("favorites")
-        .select(`
-          id,
-          books (
-            id,
-        
+    const light =
+      document.body.classList.contains(
+        "light"
+      );
+
+
+    themeBtn.textContent =
+      light ? "☀" : "☾";
+
+
+    localStorage.setItem(
+      "novelhub-theme",
+      light ? "light" : "dark"
+    );
+
+  }
+);
+
+
+/* =========================================================
+   RESTORE THEME
+========================================================= */
+
+if (
+  localStorage.getItem(
+    "novelhub-theme"
+  ) === "light"
+) {
+
+  document.body.classList.add(
+    "light"
+  );
+
+  themeBtn.textContent =
+    "☀";
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHTML(value) {
+
+  const element =
+    document.createElement("div");
+
+  element.textContent =
+    value ?? "";
+
+  return element.innerHTML;
+
+}
+
+
+/* =========================================================
+   STARTUP
+========================================================= */
+
+console.log(
+  "NovelHub loaded successfully."
+);
