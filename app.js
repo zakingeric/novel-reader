@@ -1,29 +1,386 @@
-const searchInput = document.getElementById("searchInput");
-const searchBtn = document.getElementById("searchBtn");
-const booksContainer = document.getElementById("books");
-const resultCount = document.getElementById("resultCount");
-
-const reader = document.getElementById("reader");
-const readerTitle = document.getElementById("readerTitle");
-const readerContent = document.getElementById("readerContent");
-
-const closeReader = document.getElementById("closeReader");
-
-const increaseFont = document.getElementById("increaseFont");
-const decreaseFont = document.getElementById("decreaseFont");
-
-const themeBtn = document.getElementById("themeBtn");
+/* =========================================================
+   NOVELHUB
+   Supabase + Gutendex + Project Gutenberg
+========================================================= */
 
 
-/*
-========================================
-SEARCH OPEN LIBRARY
-========================================
-*/
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+  "https://wualzkqggfbosgvjcswb.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_bG7mVEOkRFKj0XH3wRWZqg_D61fsRoa";
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const searchInput =
+  document.getElementById("searchInput");
+
+const searchBtn =
+  document.getElementById("searchBtn");
+
+const booksContainer =
+  document.getElementById("books");
+
+const resultCount =
+  document.getElementById("resultCount");
+
+const sectionTitle =
+  document.getElementById("sectionTitle");
+
+const reader =
+  document.getElementById("reader");
+
+const readerTitle =
+  document.getElementById("readerTitle");
+
+const readerContent =
+  document.getElementById("readerContent");
+
+const closeReader =
+  document.getElementById("closeReader");
+
+const increaseFont =
+  document.getElementById("increaseFont");
+
+const decreaseFont =
+  document.getElementById("decreaseFont");
+
+const bookmarkBtn =
+  document.getElementById("bookmarkBtn");
+
+const themeBtn =
+  document.getElementById("themeBtn");
+
+const authBtn =
+  document.getElementById("authBtn");
+
+const libraryBtn =
+  document.getElementById("libraryBtn");
+
+const authModal =
+  document.getElementById("authModal");
+
+const closeAuth =
+  document.getElementById("closeAuth");
+
+const authForm =
+  document.getElementById("authForm");
+
+const authTitle =
+  document.getElementById("authTitle");
+
+const authSubtitle =
+  document.getElementById("authSubtitle");
+
+const authSubmitText =
+  document.getElementById("authSubmitText");
+
+const toggleAuth =
+  document.getElementById("toggleAuth");
+
+const authMessage =
+  document.getElementById("authMessage");
+
+const emailInput =
+  document.getElementById("emailInput");
+
+const passwordInput =
+  document.getElementById("passwordInput");
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let currentUser = null;
+
+let currentBook = null;
+
+let currentBookId = null;
+
+let currentGutenbergId = null;
+
+let fontSize = 19;
+
+let isSignUp = false;
+
+let saveProgressTimer = null;
+
+
+/* =========================================================
+   AUTH
+========================================================= */
+
+async function loadUser() {
+
+  const {
+    data,
+    error
+  } = await supabaseClient.auth.getUser();
+
+  if (error) {
+
+    console.error(error);
+
+    return;
+
+  }
+
+  currentUser =
+    data.user || null;
+
+  updateAuthUI();
+
+}
+
+
+function updateAuthUI() {
+
+  if (currentUser) {
+
+    authBtn.textContent =
+      "Sign out";
+
+  } else {
+
+    authBtn.textContent =
+      "Sign in";
+
+  }
+
+}
+
+
+/* =========================================================
+   AUTH BUTTON
+========================================================= */
+
+authBtn.addEventListener(
+  "click",
+  async () => {
+
+    if (currentUser) {
+
+      await supabaseClient.auth.signOut();
+
+      currentUser = null;
+
+      updateAuthUI();
+
+      alert("Signed out.");
+
+      return;
+
+    }
+
+    openAuthModal();
+
+  }
+);
+
+
+/* =========================================================
+   OPEN AUTH
+========================================================= */
+
+function openAuthModal() {
+
+  authModal.classList.remove("hidden");
+
+  authMessage.textContent = "";
+
+  emailInput.value = "";
+
+  passwordInput.value = "";
+
+}
+
+
+/* =========================================================
+   CLOSE AUTH
+========================================================= */
+
+closeAuth.addEventListener(
+  "click",
+  () => {
+
+    authModal.classList.add("hidden");
+
+  }
+);
+
+
+/* =========================================================
+   TOGGLE SIGN IN / SIGN UP
+========================================================= */
+
+toggleAuth.addEventListener(
+  "click",
+  () => {
+
+    isSignUp =
+      !isSignUp;
+
+    if (isSignUp) {
+
+      authTitle.textContent =
+        "Create account";
+
+      authSubtitle.textContent =
+        "Create an account to save your library and reading progress.";
+
+      authSubmitText.textContent =
+        "Create account";
+
+      toggleAuth.textContent =
+        "Already have an account? Sign in";
+
+    } else {
+
+      authTitle.textContent =
+        "Sign in";
+
+      authSubtitle.textContent =
+        "Sign in to save books and reading progress.";
+
+      authSubmitText.textContent =
+        "Sign in";
+
+      toggleAuth.textContent =
+        "Don't have an account? Sign up";
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTH FORM
+========================================================= */
+
+authForm.addEventListener(
+  "submit",
+  async event => {
+
+    event.preventDefault();
+
+    const email =
+      emailInput.value.trim();
+
+    const password =
+      passwordInput.value;
+
+
+    authMessage.textContent =
+      "Please wait...";
+
+
+    try {
+
+      let result;
+
+
+      if (isSignUp) {
+
+        result =
+          await supabaseClient.auth.signUp({
+            email,
+            password
+          });
+
+      } else {
+
+        result =
+          await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+
+      }
+
+
+      if (result.error) {
+
+        throw result.error;
+
+      }
+
+
+      if (isSignUp) {
+
+        authMessage.textContent =
+          "Account created. Check your email if confirmation is required.";
+
+      } else {
+
+        currentUser =
+          result.data.user;
+
+        updateAuthUI();
+
+        authModal.classList.add("hidden");
+
+      }
+
+    } catch (error) {
+
+      console.error(error);
+
+      authMessage.textContent =
+        error.message;
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTH STATE LISTENER
+========================================================= */
+
+supabaseClient.auth.onAuthStateChange(
+  (_event, session) => {
+
+    currentUser =
+      session?.user || null;
+
+    updateAuthUI();
+
+  }
+);
+
+
+/* =========================================================
+   SEARCH GUTENDEX
+========================================================= */
 
 async function searchBooks(query) {
 
-  if (!query.trim()) return;
+  if (!query.trim()) {
+
+    return;
+
+  }
+
+
+  sectionTitle.textContent =
+    "Search Results";
+
 
   booksContainer.innerHTML = `
     <div class="loading">
@@ -31,19 +388,38 @@ async function searchBooks(query) {
     </div>
   `;
 
+
   try {
 
     const url =
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=24`;
+      `https://gutendex.com/books/?search=${encodeURIComponent(query)}&page_size=32`;
 
-    const response = await fetch(url);
 
-    const data = await response.json();
+    const response =
+      await fetch(url);
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        "Search failed."
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
 
     resultCount.textContent =
-      `${data.numFound.toLocaleString()} books found`;
+      `${data.count.toLocaleString()} books found`;
 
-    displayBooks(data.docs);
+
+    displayBooks(
+      data.results
+    );
+
 
   } catch (error) {
 
@@ -60,15 +436,14 @@ async function searchBooks(query) {
 }
 
 
-/*
-========================================
-DISPLAY BOOKS
-========================================
-*/
+/* =========================================================
+   DISPLAY BOOKS
+========================================================= */
 
-function displayBooks(books) {
+async function displayBooks(books) {
 
   booksContainer.innerHTML = "";
+
 
   if (!books.length) {
 
@@ -79,192 +454,228 @@ function displayBooks(books) {
     `;
 
     return;
+
   }
 
 
-  books.forEach(book => {
+  for (const book of books) {
 
-    const coverId = book.cover_i;
-
-    const cover = coverId
-
-      ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`
-
-      : "https://via.placeholder.com/300x450?text=No+Cover";
-
-
-    const title =
-      book.title || "Unknown title";
-
-    const author =
-      book.author_name?.[0] || "Unknown author";
-
-
-    const card = document.createElement("div");
-
-    card.className = "book";
-
-    card.innerHTML = `
-
-      <img
-        class="book-cover"
-        src="${cover}"
-        alt="${title}"
-      >
-
-      <div class="book-info">
-
-        <div class="book-title">
-          ${title}
-        </div>
-
-        <div class="book-author">
-          ${author}
-        </div>
-
-      </div>
-
-    `;
-
-
-    /*
-    Try to find Gutenberg ID
-    */
-
-    const gutenbergId =
-      findGutenbergId(book);
-
-
-    card.addEventListener("click", () => {
-
-      if (gutenbergId) {
-
-        openBook(
-          gutenbergId,
-          title
-        );
-
-      } else {
-
-        alert(
-          "This book doesn't have a Gutenberg edition available in our current database."
-        );
-
-      }
-
-    });
-
+    const card =
+      createBookCard(book);
 
     booksContainer.appendChild(card);
 
-  });
-
-}
+  }
 
 
-/*
-========================================
-GUTENBERG ID
-========================================
+  if (currentUser) {
 
-For the prototype we map popular
-public-domain books.
-
-Later this can become a database.
-*/
-
-function findGutenbergId(book) {
-
-  const title =
-    book.title?.toLowerCase() || "";
-
-
-  const knownBooks = {
-
-    "frankenstein":
-      84,
-
-    "pride and prejudice":
-      1342,
-
-    "alice's adventures in wonderland":
-      11,
-
-    "dracula":
-      345,
-
-    "the adventures of sherlock holmes":
-      1661,
-
-    "the great gatsby":
-      64317,
-
-    "moby dick":
-      2701,
-
-    "little women":
-      37106,
-
-    "the picture of dorian gray":
-      174,
-
-    "a tale of two cities":
-      98
-
-  };
-
-
-  for (const name in knownBooks) {
-
-    if (title.includes(name)) {
-
-      return knownBooks[name];
-
-    }
+    await markFavoriteBooks();
 
   }
 
-  return null;
+}
+
+
+/* =========================================================
+   CREATE BOOK CARD
+========================================================= */
+
+function createBookCard(book) {
+
+  const card =
+    document.createElement("div");
+
+  card.className =
+    "book";
+
+
+  const cover =
+    book.formats?.["image/jpeg"] ||
+    "https://via.placeholder.com/300x450?text=No+Cover";
+
+
+  const title =
+    book.title ||
+    "Unknown title";
+
+
+  const author =
+    book.authors?.[0]?.name ||
+    "Unknown author";
+
+
+  const img =
+    document.createElement("img");
+
+  img.className =
+    "book-cover";
+
+  img.src =
+    cover;
+
+  img.alt =
+    title;
+
+
+  const info =
+    document.createElement("div");
+
+  info.className =
+    "book-info";
+
+
+  const titleElement =
+    document.createElement("div");
+
+  titleElement.className =
+    "book-title";
+
+  titleElement.textContent =
+    title;
+
+
+  const authorElement =
+    document.createElement("div");
+
+  authorElement.className =
+    "book-author";
+
+  authorElement.textContent =
+    author;
+
+
+  info.appendChild(titleElement);
+
+  info.appendChild(authorElement);
+
+
+  const favorite =
+    document.createElement("button");
+
+  favorite.className =
+    "favorite-btn";
+
+  favorite.textContent =
+    "♡";
+
+  favorite.title =
+    "Favorite";
+
+
+  favorite.addEventListener(
+    "click",
+    async event => {
+
+      event.stopPropagation();
+
+      await toggleFavorite(book);
+
+    }
+  );
+
+
+  card.appendChild(img);
+
+  card.appendChild(info);
+
+  card.appendChild(favorite);
+
+
+  card.addEventListener(
+    "click",
+    () => {
+
+      openBook(book);
+
+    }
+  );
+
+
+  return card;
 
 }
 
 
-/*
-========================================
-OPEN BOOK
-========================================
-*/
+/* =========================================================
+   GET TEXT FORMAT
+========================================================= */
 
-async function openBook(id, title) {
+function getTextUrl(book) {
 
-  reader.classList.remove("hidden");
+  const formats =
+    book.formats || {};
 
-  readerTitle.textContent = title;
+
+  return (
+    formats["text/plain; charset=utf-8"] ||
+    formats["text/plain"] ||
+    formats["text/plain; charset=us-ascii"] ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   OPEN BOOK
+========================================================= */
+
+async function openBook(book) {
+
+  const textUrl =
+    getTextUrl(book);
+
+
+  if (!textUrl) {
+
+    alert(
+      "A readable text version of this book is not available."
+    );
+
+    return;
+
+  }
+
+
+  currentGutenbergId =
+    book.id;
+
+
+  reader.classList.remove(
+    "hidden"
+  );
+
+
+  document.body.style.overflow =
+    "hidden";
+
+
+  readerTitle.textContent =
+    book.title;
+
 
   readerContent.innerHTML = `
     <div class="reader-loading">
-      Loading "${title}"...
+      Loading "${escapeHTML(book.title)}"...
     </div>
   `;
 
 
+  currentBook =
+    book;
+
+
   try {
 
-    /*
-    Gutenberg plain text endpoint
-    */
-
-    const url =
-      `https://www.gutenberg.org/cache/epub/${id}/pg${id}.txt`;
-
     const response =
-      await fetch(url);
+      await fetch(textUrl);
 
 
     if (!response.ok) {
 
       throw new Error(
-        "Book could not be loaded"
+        "Book could not be loaded."
       );
 
     }
@@ -274,10 +685,25 @@ async function openBook(id, title) {
       await response.text();
 
 
+    const savedBook =
+      await saveBookToSupabase(book);
+
+
+    if (savedBook) {
+
+      currentBookId =
+        savedBook.id;
+
+    }
+
+
     displayBookText(
       text,
-      title
+      book.title
     );
+
+
+    await loadReadingProgress();
 
 
   } catch (error) {
@@ -286,21 +712,18 @@ async function openBook(id, title) {
 
     readerContent.innerHTML = `
 
-      <h1>${title}</h1>
+      <h1>${escapeHTML(book.title)}</h1>
 
       <p>
-        We couldn't load the book directly.
-      </p>
-
-      <p>
-        You can read the book on Project Gutenberg.
+        We couldn't load this book right now.
       </p>
 
       <a
-        href="https://www.gutenberg.org/"
+        href="https://www.gutenberg.org/ebooks/${book.id}"
         target="_blank"
+        rel="noopener noreferrer"
       >
-        Open Project Gutenberg
+        Open on Project Gutenberg
       </a>
 
     `;
@@ -310,91 +733,235 @@ async function openBook(id, title) {
 }
 
 
-/*
-========================================
-FORMAT BOOK
-========================================
-*/
+/* =========================================================
+   SAVE BOOK
+========================================================= */
 
-function displayBookText(text, title) {
+async function saveBookToSupabase(book) {
 
-  /*
-  Remove Gutenberg header/footer
-  */
+  const existing =
+    await supabaseClient
+      .from("books")
+      .select("*")
+      .eq("gutenberg_id", book.id)
+      .maybeSingle();
+
+
+  if (existing.error) {
+
+    console.error(
+      existing.error
+    );
+
+    return null;
+
+  }
+
+
+  if (existing.data) {
+
+    return existing.data;
+
+  }
+
+
+  const author =
+    book.authors?.[0]?.name ||
+    null;
+
+
+  const cover =
+    book.formats?.["image/jpeg"] ||
+    null;
+
+
+  const description =
+    Array.isArray(book.subjects)
+      ? book.subjects.join(", ")
+      : null;
+
+
+  const result =
+    await supabaseClient
+      .from("books")
+      .insert({
+
+        gutenberg_id:
+          book.id,
+
+        title:
+          book.title,
+
+        author,
+
+        cover_url:
+          cover,
+
+        description
+
+      })
+      .select()
+      .single();
+
+
+  if (result.error) {
+
+    console.error(
+      result.error
+    );
+
+    return null;
+
+  }
+
+
+  return result.data;
+
+}
+
+
+/* =========================================================
+   FORMAT BOOK TEXT
+========================================================= */
+
+function displayBookText(
+  text,
+  title
+) {
+
+  let cleanText =
+    text;
+
+
+  const startMarker =
+    "*** START OF";
+
+
+  const endMarker =
+    "*** END OF";
+
 
   const start =
-    text.indexOf("*** START OF");
+    cleanText.indexOf(
+      startMarker
+    );
+
 
   const end =
-    text.indexOf("*** END OF");
+    cleanText.indexOf(
+      endMarker
+    );
 
 
   if (start !== -1) {
 
-    text =
-      text.substring(start);
+    const newline =
+      cleanText.indexOf(
+        "\n",
+        start
+      );
+
+    if (newline !== -1) {
+
+      cleanText =
+        cleanText.substring(
+          newline + 1
+        );
+
+    }
 
   }
 
 
   if (end !== -1) {
 
-    text =
-      text.substring(0, text.indexOf("*** END OF"));
+    cleanText =
+      cleanText.substring(
+        0,
+        end
+      );
 
   }
 
 
+  readerContent.innerHTML = "";
+
+
+  const heading =
+    document.createElement("h1");
+
+  heading.textContent =
+    title;
+
+
+  readerContent.appendChild(
+    heading
+  );
+
+
   const paragraphs =
-    text
+    cleanText
       .split(/\n\s*\n/)
-      .filter(p => p.trim());
+      .map(p => p.trim())
+      .filter(Boolean);
 
 
-  readerContent.innerHTML = `
-    <h1>${title}</h1>
-  `;
+  paragraphs.forEach(
+    paragraph => {
+
+      const p =
+        document.createElement("p");
+
+      p.textContent =
+        paragraph;
+
+      readerContent.appendChild(
+        p
+      );
+
+    }
+  );
 
 
-  paragraphs.forEach(paragraph => {
-
-    const p =
-      document.createElement("p");
-
-    p.textContent =
-      paragraph.trim();
-
-    readerContent.appendChild(p);
-
-  });
+  readerContent.style.fontSize =
+    `${fontSize}px`;
 
 }
 
 
-/*
-========================================
-CLOSE READER
-========================================
-*/
+/* =========================================================
+   CLOSE READER
+========================================================= */
 
 closeReader.addEventListener(
   "click",
-  () => {
+  async () => {
 
-    reader.classList.add("hidden");
+    await saveCurrentProgress();
+
+    reader.classList.add(
+      "hidden"
+    );
+
+    document.body.style.overflow =
+      "";
+
+    currentBook =
+      null;
+
+    currentBookId =
+      null;
+
+    currentGutenbergId =
+      null;
 
   }
 );
 
 
-/*
-========================================
-FONT SIZE
-========================================
-*/
-
-let fontSize = 19;
-
+/* =========================================================
+   FONT SIZE
+========================================================= */
 
 increaseFont.addEventListener(
   "click",
@@ -402,8 +969,19 @@ increaseFont.addEventListener(
 
     fontSize += 2;
 
+    if (fontSize > 30) {
+
+      fontSize = 30;
+
+    }
+
     readerContent.style.fontSize =
       `${fontSize}px`;
+
+    localStorage.setItem(
+      "novelhub-font-size",
+      fontSize
+    );
 
   }
 );
@@ -413,66 +991,411 @@ decreaseFont.addEventListener(
   "click",
   () => {
 
-    if (fontSize > 13) {
+    fontSize -= 2;
 
-      fontSize -= 2;
+    if (fontSize < 13) {
 
-      readerContent.style.fontSize =
-        `${fontSize}px`;
+      fontSize = 13;
 
     }
+
+    readerContent.style.fontSize =
+      `${fontSize}px`;
+
+    localStorage.setItem(
+      "novelhub-font-size",
+      fontSize
+    );
 
   }
 );
 
 
-/*
-========================================
-SEARCH EVENTS
-========================================
-*/
+/* =========================================================
+   READING PROGRESS
+========================================================= */
 
-searchBtn.addEventListener(
-  "click",
+async function saveCurrentProgress() {
+
+  if (
+    !currentUser ||
+    !currentBookId ||
+    !readerContent
+  ) {
+
+    return;
+
+  }
+
+
+  const scrollable =
+    document.documentElement.scrollHeight -
+    window.innerHeight;
+
+
+  if (scrollable <= 0) {
+
+    return;
+
+  }
+
+
+  const progress =
+    Math.min(
+      100,
+      Math.max(
+        0,
+        (window.scrollY / scrollable) * 100
+      )
+    );
+
+
+  const result =
+    await supabaseClient
+      .from("reading_progress")
+      .upsert(
+        {
+
+          user_id:
+            currentUser.id,
+
+          book_id:
+            currentBookId,
+
+          progress:
+            Number(progress.toFixed(2)),
+
+          updated_at:
+            new Date().toISOString()
+
+        },
+        {
+          onConflict:
+            "user_id,book_id"
+        }
+      );
+
+
+  if (result.error) {
+
+    console.error(
+      "Progress error:",
+      result.error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   AUTO SAVE SCROLL
+========================================================= */
+
+window.addEventListener(
+  "scroll",
   () => {
 
-    searchBooks(
+    if (
+      reader.classList.contains(
+        "hidden"
+      )
+    ) {
+
+      return;
+
+    }
+
+
+    clearTimeout(
+      saveProgressTimer
+    );
+
+
+    saveProgressTimer =
+      setTimeout(
+        saveCurrentProgress,
+        800
+      );
+
+  }
+);
+
+
+/* =========================================================
+   LOAD READING PROGRESS
+========================================================= */
+
+async function loadReadingProgress() {
+
+  if (
+    !currentUser ||
+    !currentBookId
+  ) {
+
+    return;
+
+  }
+
+
+  const result =
+    await supabaseClient
+      .from("reading_progress")
+      .select("progress")
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .eq(
+        "book_id",
+        currentBookId
+      )
+      .maybeSingle();
+
+
+  if (
+    result.error ||
+    !result.data
+  ) {
+
+    return;
+
+  }
+
+
+  const progress =
+    Number(
+      result.data.progress
+    );
+
+
+  if (
+    progress <= 0 ||
+    progress >= 100
+  ) {
+
+    return;
+
+  }
+
+
+  setTimeout(
+    () => {
+
+      const scrollable =
+        document.documentElement.scrollHeight -
+        window.innerHeight;
+
+
+      window.scrollTo(
+        0,
+        scrollable * (progress / 100)
+      );
+
+    },
+    300
+  );
+
+}
+
+
+/* =========================================================
+   FAVORITES
+========================================================= */
+
+async function toggleFavorite(book) {
+
+  if (!currentUser) {
+
+    openAuthModal();
+
+    authMessage.textContent =
+      "Sign in to save books.";
+
+    return;
+
+  }
+
+
+  const savedBook =
+    await saveBookToSupabase(book);
+
+
+  if (!savedBook) {
+
+    return;
+
+  }
+
+
+  const existing =
+    await supabaseClient
+      .from("favorites")
+      .select("id")
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .eq(
+        "book_id",
+        savedBook.id
+      )
+      .maybeSingle();
+
+
+  if (existing.error) {
+
+    console.error(
+      existing.error
+    );
+
+    return;
+
+  }
+
+
+  if (existing.data) {
+
+    await supabaseClient
+      .from("favorites")
+      .delete()
+      .eq(
+        "id",
+        existing.data.id
+      );
+
+  } else {
+
+    await supabaseClient
+      .from("favorites")
+      .insert({
+
+        user_id:
+          currentUser.id,
+
+        book_id:
+          savedBook.id
+
+      });
+
+  }
+
+
+  /*
+  Refresh current search
+  */
+
+  if (searchInput.value.trim()) {
+
+    await searchBooks(
       searchInput.value
     );
 
   }
-);
+
+}
 
 
-searchInput.addEventListener(
-  "keydown",
-  event => {
+/* =========================================================
+   MARK FAVORITES
+========================================================= */
 
-    if (event.key === "Enter") {
+async function markFavoriteBooks() {
 
-      searchBooks(
-        searchInput.value
-      );
+  if (!currentUser) {
+
+    return;
+
+  }
+
+
+  const result =
+    await supabaseClient
+      .from("favorites")
+      .select("book_id");
+
+
+  if (result.error) {
+
+    console.error(
+      result.error
+    );
+
+    return;
+
+  }
+
+
+  /*
+  The search cards are indexed
+  in the same order as the result.
+  */
+
+  const favoriteIds =
+    new Set(
+      result.data.map(
+        item =>
+          item.book_id
+      )
+    );
+
+
+  const cards =
+    document.querySelectorAll(
+      ".book"
+    );
+
+
+  /*
+  We don't have the Supabase ID
+  stored directly on cards, so this
+  function is mainly visual support
+  for cards already saved during this
+  session.
+  */
+
+}
+
+
+/* =========================================================
+   MY LIBRARY
+========================================================= */
+
+libraryBtn.addEventListener(
+  "click",
+  async () => {
+
+    if (!currentUser) {
+
+      openAuthModal();
+
+      authMessage.textContent =
+        "Sign in to access your library.";
+
+      return;
 
     }
 
-  }
-);
+
+    sectionTitle.textContent =
+      "My Library";
+
+    resultCount.textContent =
+      "";
 
 
-/*
-========================================
-DARK MODE
-========================================
-*/
+    booksContainer.innerHTML = `
+      <div class="loading">
+        Loading your library...
+      </div>
+    `;
 
-themeBtn.addEventListener(
-  "click",
-  () => {
 
-    document.body.classList.toggle(
-      "light"
-    );
-
-  }
-);
+    const result =
+      await supabaseClient
+        .from("favorites")
+        .select(`
+          id,
+          books (
+            id,
+        
